@@ -4,7 +4,7 @@ from pathlib import Path
 import yaml
 import datetime
 
-from CustomTypes import Address, Port
+from .CustomTypes import Address, Port
 
 load_dotenv()
 
