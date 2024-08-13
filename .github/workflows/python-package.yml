@@ -64,6 +64,8 @@ jobs:
       run: |
         VERSION=$(grep '^version =' pyproject.toml | sed 's/version = "//' | sed 's/"//')
         echo "VERSION=$VERSION" >> $GITHUB_ENV
+    - name: List all files in dist directory
+      run: ls -la dist/
     - name: Create GitHub Release
       id: create_release
       uses: actions/create-release@v1
@@ -78,6 +80,6 @@ jobs:
       uses: actions/upload-release-asset@v1
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./dist/rConfig-*.whl
+        asset_path: ./dist/rConfig-${{ env.VERSION }}-py3-none-any.whl  # Use the exact file name
         asset_name: rConfig-${{ env.VERSION }}.whl
         asset_content_type: application/zip
