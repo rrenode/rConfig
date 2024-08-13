@@ -29,7 +29,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install setuptools wheel
+        pip install setuptools wheel build
         pip install flake8 pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Lint with flake8
@@ -52,20 +52,20 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install setuptools wheel
+        pip install setuptools wheel build
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Build the package
       run: |
-        python setup.py sdist bdist_wheel
+        python -m build
     - name: List build artifacts
-      run: ls -l dist/
+      run: ls -la dist/
     - name: Create GitHub Release
       id: create_release
       uses: actions/create-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ github.ref_name }}  # Use ref_name instead of github.ref for a cleaner tag name
+        tag_name: ${{ github.ref_name }}
         release_name: Release ${{ github.ref_name }}
         draft: false
         prerelease: false
@@ -73,6 +73,6 @@ jobs:
       uses: actions/upload-release-asset@v1
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./dist/*.whl  # Adjusted to match any .whl file in dist
-        asset_name: my_package-${{ github.ref_name }}.whl  # Using ref_name for consistency
+        asset_path: ./dist/*.whl
+        asset_name: my_package-${{ github.ref_name }}.whl
         asset_content_type: application/zip
