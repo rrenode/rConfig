@@ -73,6 +73,6 @@ jobs:
       uses: actions/upload-release-asset@v1
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./dist/my_package-*.whl
-        asset_name: my_package-${{ github.ref }}.whl
+        asset_path: ./dist/*.whl  # Adjusted to match any .whl file in dist
+        asset_name: my_package-${{ github.ref_name }}.whl  # Using ref_name for consistency
         asset_content_type: application/zip
