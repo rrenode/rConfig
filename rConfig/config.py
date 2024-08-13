@@ -77,7 +77,9 @@ def config(cls, custom_converters=None):
                 pass
             
     except FileNotFoundError:
-        raise FileNotFoundError(f"The configuration file '{config_path}' was not found")
+        if DevConfig.VERBOSE_DEV or DevConfig.CONFIG_CONTROLLER_LOG:
+            print(f"Configuration file '{config_path}' not found. Using default values for {cls.__name__}.")
+    
     except yaml.YAMLError as e:
         raise ValueError(f"Error parsing YAML file: {e}")
 
