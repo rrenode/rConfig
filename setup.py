@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 import pathlib
 
-# Read the requirements.txt file
+# Read the requirements.txt file 
 HERE = pathlib.Path(__file__).parent
 with open(HERE / "requirements.txt") as f:
     install_requires = f.read().splitlines()
