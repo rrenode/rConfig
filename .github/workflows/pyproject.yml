@@ -10,7 +10,6 @@ on:
 
 permissions:
   contents: write
-  packages: write
   actions: read
 
 jobs:
@@ -64,8 +63,7 @@ jobs:
       id: new_version
       run: |
         # Get the latest tag
-        latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)
-        echo "Latest tag: $latest_tag"
+        latest_tag=$(git describe --tags $(git rev-list --tags --max-count=1) 2>/dev/null)
         
         if [ -z "$latest_tag" ]; then
           # If no tag exists, start with v0.1.0
