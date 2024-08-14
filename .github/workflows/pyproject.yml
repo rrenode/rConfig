@@ -62,9 +62,12 @@ jobs:
     - name: Determine New Version
       id: new_version
       run: |
-        # Get the latest tag
-        latest_tag=$(git describe --tags $(git rev-list --tags --max-count=1) 2>/dev/null)
+        # Fetch all tags to ensure we have the latest
+        git fetch --tags
         
+        # Get the latest tag, or handle the absence of tags
+        latest_tag=$(git tag --sort=-v:refname | head -n 1)
+
         if [ -z "$latest_tag" ]; then
           # If no tag exists, start with v0.1.0
           new_version="0.1.0"
