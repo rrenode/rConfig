@@ -1,4 +1,4 @@
-name: Python package 
+name: Python package
 
 on:
   push:
@@ -60,11 +60,32 @@ jobs:
         python -m build
     - name: List build artifacts
       run: ls -la dist/
-    - name: Extract Version from pyproject.toml
-      id: get_version
+    - name: Determine New Version
+      id: new_version
       run: |
-        VERSION=$(grep '^version =' pyproject.toml | sed 's/version = "//' | sed 's/"//')
-        echo "VERSION=$VERSION" >> $GITHUB_ENV
+        # Get the latest tag
+        latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)
+        echo "Latest tag: $latest_tag"
+        
+        if [ -z "$latest_tag" ]; then
+          # If no tag exists, start with v0.1.0
+          new_version="0.1.0"
+        else
+          # Extract the major, minor, and patch numbers
+          IFS='.' read -r -a version_parts <<< "${latest_tag#v}"
+          major="${version_parts[0]}"
+          minor="${version_parts[1]}"
+          patch="${version_parts[2]}"
+
+          # Increment the patch number
+          patch=$((patch+1))
+
+          # Form the new version
+          new_version="$major.$minor.$patch"
+        fi
+        
+        echo "New version: $new_version"
+        echo "VERSION=$new_version" >> $GITHUB_ENV
     - name: Create GitHub Release
       id: create_release
       uses: actions/create-release@v1
