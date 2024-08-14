@@ -1,0 +1,14 @@
+name: Test GITHUB_TOKEN
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Test GITHUB_TOKEN
+      run: |
+        echo "Token works!" | gh auth login --with-token ${{ secrets.GITHUB_TOKEN }} || exit 1
