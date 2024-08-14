@@ -64,14 +64,6 @@ jobs:
       run: |
         VERSION=$(grep '^version =' pyproject.toml | sed 's/version = "//' | sed 's/"//')
         echo "VERSION=$VERSION" >> $GITHUB_ENV
-    - name: Verify GITHUB_TOKEN Before Release
-      run: |
-        if [ -z "$GITHUB_TOKEN" ]; then
-          echo "GITHUB_TOKEN is not set"
-          exit 1
-        else
-          echo "GITHUB_TOKEN is set"
-        fi
     - name: Create GitHub Release
       id: create_release
       uses: actions/create-release@v1
