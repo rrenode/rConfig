@@ -1,7 +1,9 @@
 from dotenv import load_dotenv
 from os import getenv
 from pathlib import Path
+
 import yaml
+import inspect
 import datetime
 
 from .CustomTypes import Address, Port
@@ -49,8 +51,9 @@ class DevConfig:
 
 def config(cls, custom_converters=None):
     converters = get_field_type_converters(custom_converters)
+    config_path = Paths.CONFIG_PATH
+    
     try:
-        config_path = Paths.CONFIG_PATH
         with open(config_path, 'r') as file:
             config_data = yaml.safe_load(file)
         
@@ -59,7 +62,7 @@ def config(cls, custom_converters=None):
 
         class_name = cls.__name__
         class_config = config_data.get(class_name, {})
-        
+
         for key in vars(cls):
             if key in class_config:
                 if str(key).startswith("__"):
@@ -72,10 +75,11 @@ def config(cls, custom_converters=None):
                 if DevConfig.VERBOSE_DEV or DevConfig.CONFIG_CONTROLLER_LOG:
                     print(f"Set {cls.__name__}.{key} to {value}")
             elif not str(key).startswith("__"):
+                if inspect.isfunction(getattr(cls, key)):
+                    continue
                 if DevConfig.VERBOSE_DEV or DevConfig.CONFIG_CONTROLLER_LOG:
                     print(f"Using default value for {cls.__name__}.{key}: {getattr(cls, key)}")
-                pass
-            
+
     except FileNotFoundError:
         if DevConfig.VERBOSE_DEV or DevConfig.CONFIG_CONTROLLER_LOG:
             print(f"Configuration file '{config_path}' not found. Using default values for {cls.__name__}.")
@@ -83,4 +87,20 @@ def config(cls, custom_converters=None):
     except yaml.YAMLError as e:
         raise ValueError(f"Error parsing YAML file: {e}")
 
+    # Collect methods to be processed as @config_property
+    config_properties = []
+    for key, method in cls.__dict__.items():
+        if callable(method) and getattr(method, '_is_config_property', False):
+            config_properties.append((key, method))
+    
+    # Process the collected methods
+    for key, method in config_properties:
+        new_key = f"_{key}_internal"
+        setattr(cls, new_key, method)
+        setattr(cls, key, method())
+
     return cls
+
+def config_property(func):
+    func._is_config_property = True
+    return func
