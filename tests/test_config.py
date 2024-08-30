@@ -23,8 +23,8 @@ class TestConfig(unittest.TestCase):
             OG_VAR: int = 10
 
             @config_property
-            def TEST_VAR():
-                return TestClass.OG_VAR + 5
+            def TEST_VAR(cls):
+                return cls.OG_VAR + 5
 
         self.assertEqual(TestClass.TEST_VAR, 15)
 

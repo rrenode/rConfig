@@ -97,8 +97,9 @@ def config(cls, custom_converters=None):
     for key, method in config_properties:
         new_key = f"_{key}_internal"
         setattr(cls, new_key, method)
-        setattr(cls, key, method())
-
+        setattr(cls, key, method(cls))
+        
+    
     return cls
 
 def config_property(func):
