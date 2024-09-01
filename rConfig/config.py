@@ -10,6 +10,18 @@ from .CustomTypes import Address, Port
 
 load_dotenv()
 
+# Utility Functions
+def rPrint(msg):
+    print(f"[rConfig] {msg}")
+
+def rError(exc, msg):
+    return exc(f"[rConfig] {msg}")
+
+class ConverterNotFoundError(Exception):
+    def __init__(self, field_type):
+        self.field_type = field_type
+        super().__init__(f"[rConfig] No converter found for field type: {field_type}")
+
 # Move FIELD_TYPE_CONVERTERS to a separate function to allow extension
 def get_field_type_converters(custom_converters=None):
     converters = {
@@ -29,29 +41,37 @@ def get_field_type_converters(custom_converters=None):
     return converters
 
 def dev_config(cls, custom_converters=None):
+    ignore_list = ['rSILENT','rDEBUG','rVERBOSE','rCONFIG_PATH','rSECRETS_PATH']
     converters = get_field_type_converters(custom_converters)
     for key, field_type in cls.__annotations__.items():
         if str(key).startswith("__"):
             continue
         env_value = getenv(key)
-        if env_value is not None and field_type in converters:
+        if field_type not in converters:
+                raise ConverterNotFoundError(field_type)
+        if env_value is None:
+            if key in ignore_list:
+                continue
+            rPrint(f"Using default value for dev_config {cls.__name__}.{key}: {getattr(cls, key)}")
+        else:
             value = converters[field_type](env_value)
             setattr(cls, key, value)
     return cls
 
 @dev_config
 class Paths:
-    CONFIG_PATH: Path = Path("config.yaml")
-    SECRETS_PATH: Path = Path(".secrets")
+    rCONFIG_PATH: Path = Path("config.yaml")
+    rSECRETS_PATH: Path = Path(".secrets")
 
 @dev_config
-class DevConfig:
-    VERBOSE_DEV: bool = False
-    CONFIG_CONTROLLER_LOG: bool = False
+class rConfig:
+    rSILENT: bool = False
+    rDEBUG: bool = False
+    rVERBOSE: bool = False
 
 def config(cls, custom_converters=None):
     converters = get_field_type_converters(custom_converters)
-    config_path = Paths.CONFIG_PATH
+    config_path = Paths.rCONFIG_PATH
     
     try:
         with open(config_path, 'r') as file:
@@ -69,23 +89,23 @@ def config(cls, custom_converters=None):
                     continue
                 value = class_config[key]
                 field_type = getattr(cls, key)
-                if field_type in converters:
-                    value = converters[field_type](value)
+                if field_type not in converters:
+                    raise ConverterNotFoundError(field_type)
+                value = converters[field_type](value)
                 setattr(cls, key, value)
-                if DevConfig.VERBOSE_DEV or DevConfig.CONFIG_CONTROLLER_LOG:
-                    print(f"Set {cls.__name__}.{key} to {value}")
+                if rConfig.rDEBUG:
+                    rPrint(f"Set {cls.__name__}.{key} to {value}")
             elif not str(key).startswith("__"):
                 if inspect.isfunction(getattr(cls, key)):
                     continue
-                if DevConfig.VERBOSE_DEV or DevConfig.CONFIG_CONTROLLER_LOG:
-                    print(f"Using default value for {cls.__name__}.{key}: {getattr(cls, key)}")
+                if not rConfig.rSILENT:
+                    rPrint(f"Using default value for {cls.__name__}.{key}: {getattr(cls, key)}")
 
     except FileNotFoundError:
-        if DevConfig.VERBOSE_DEV or DevConfig.CONFIG_CONTROLLER_LOG:
-            print(f"Configuration file '{config_path}' not found. Using default values for {cls.__name__}.")
+        rPrint(f"Configuration file '{config_path}' not found. Using default values for {cls.__name__}.")
     
     except yaml.YAMLError as e:
-        raise ValueError(f"Error parsing YAML file: {e}")
+        raise ValueError(f"[rConfig] Error parsing YAML file: {e}")
 
     # Collect methods to be processed as @config_property
     config_properties = []
@@ -99,7 +119,6 @@ def config(cls, custom_converters=None):
         setattr(cls, new_key, method)
         setattr(cls, key, method(cls))
         
-    
     return cls
 
 def config_property(func):
