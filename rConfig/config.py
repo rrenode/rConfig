@@ -1,3 +1,5 @@
+from typing import Any, Callable
+from enum import Enum
 from dotenv import load_dotenv
 from os import getenv
 from pathlib import Path
@@ -6,7 +8,7 @@ import yaml
 import inspect
 import datetime
 
-from .CustomTypes import Address, Port
+from .CustomTypes import Address, Port, rEnum
 
 load_dotenv()
 
@@ -34,7 +36,12 @@ def get_field_type_converters(custom_converters=None):
         Address: lambda value: Address(value),
         Port: lambda value: Port(value)
     }
+
+    def enum_converter(enum_instance: rEnum) -> Callable[[Any], Enum]:
+        return lambda value: enum_instance(value)
     
+    converters[rEnum] = enum_converter
+
     if custom_converters:
         converters.update(custom_converters)
     
@@ -83,18 +90,18 @@ def config(cls, custom_converters=None):
         class_name = cls.__name__
         class_config = config_data.get(class_name, {})
 
-        for key in vars(cls):
+        for key, field_type in cls.__annotations__.items():
             if key in class_config:
                 if str(key).startswith("__"):
                     continue
-                value = class_config[key]
-                field_type = getattr(cls, key)
-                if field_type not in converters:
+                value = class_config.get(key, getattr(cls, key))
+                if isinstance(field_type, rEnum):
+                    value = converters[rEnum](field_type)(value)
+                elif field_type not in converters:
                     raise ConverterNotFoundError(field_type)
-                value = converters[field_type](value)
+                else:
+                    value = converters[field_type](value)
                 setattr(cls, key, value)
-                if rConfig.rDEBUG:
-                    rPrint(f"Set {cls.__name__}.{key} to {value}")
             elif not str(key).startswith("__"):
                 if inspect.isfunction(getattr(cls, key)):
                     continue
