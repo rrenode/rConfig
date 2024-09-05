@@ -8,7 +8,7 @@ import yaml
 import inspect
 import datetime
 
-from .CustomTypes import Address, Port, rEnum
+from .CustomTypes import Address, Port, rEnum, rConstant
 
 load_dotenv()
 
@@ -40,7 +40,11 @@ def get_field_type_converters(custom_converters=None):
     def enum_converter(enum_instance: rEnum) -> Callable[[Any], Enum]:
         return lambda value: enum_instance(value)
     
+    def rConstant_converter(constant_type: rConstant) -> Callable[[Any], Any]:
+        return lambda value: constant_type(value)
+    
     converters[rEnum] = enum_converter
+    converters[rConstant] = rConstant_converter
 
     if custom_converters:
         converters.update(custom_converters)
@@ -97,6 +101,8 @@ def config(cls, custom_converters=None):
                 value = class_config.get(key, getattr(cls, key))
                 if isinstance(field_type, rEnum):
                     value = converters[rEnum](field_type)(value)
+                elif isinstance(field_type, rConstant):
+                    value = converters[rConstant](field_type)(value)
                 elif field_type not in converters:
                     raise ConverterNotFoundError(field_type)
                 else:
