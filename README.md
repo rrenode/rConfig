@@ -1,9 +1,4 @@
-
 # rConfig
-
-$${\color{red}rConfig}$$
-
-# $${\color{red}rConfig}$$
 
 rConfig is a tiny Python library for handling config and secrets, along with some dot env. 
 
