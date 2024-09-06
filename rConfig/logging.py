@@ -1,6 +1,6 @@
 import logging
 
-class Logger:
+class LoggerWrapper:
     def __init__(self):
         self.logger = logging.getLogger('rConfig')
     
@@ -18,3 +18,5 @@ class Logger:
     
     def critical(self, msg, *args, **kwargs):
         self.logger.critical(msg, args, kwargs)
+
+Logger = LoggerWrapper()
