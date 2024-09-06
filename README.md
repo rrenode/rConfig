@@ -1,6 +1,10 @@
 
 # rConfig
 
+$${\color{red}rConfig}$$
+
+# $${\color{red}rConfig}$$
+
 rConfig is a tiny Python library for handling config and secrets, along with some dot env. 
 
 The library currently only handles getting static configs. Future plans involve handling saving configs, a mix of dynamic as well as static config value handling, and eventually multiple config files.
