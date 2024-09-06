@@ -9,15 +9,9 @@ import inspect
 import datetime
 
 from .CustomTypes import Address, Port, rEnum, rConstant
+from .logging import Logger
 
 load_dotenv()
-
-# Utility Functions
-def rPrint(msg):
-    print(f"[rConfig] {msg}")
-
-def rError(exc, msg):
-    return exc(f"[rConfig] {msg}")
 
 class ConverterNotFoundError(Exception):
     def __init__(self, field_type):
@@ -31,6 +25,7 @@ def get_field_type_converters(custom_converters=None):
         float: float,
         str: str,
         bool: lambda x: x.lower() in ('true', '1', 'yes'),
+        dict: lambda value: value,
         datetime.datetime: lambda value: datetime.datetime.strptime(value, "%Y-%m-%d %H:%M:%S"),
         Path: lambda value: Path(value),
         Address: lambda value: Address(value),
@@ -63,7 +58,7 @@ def dev_config(cls, custom_converters=None):
         if env_value is None:
             if key in ignore_list:
                 continue
-            rPrint(f"Using default value for dev_config {cls.__name__}.{key}: {getattr(cls, key)}")
+            Logger.debug(f"Using default value for dev_config {cls.__name__}.{key}: {getattr(cls, key)}")
         else:
             value = converters[field_type](env_value)
             setattr(cls, key, value)
@@ -112,10 +107,10 @@ def config(cls, custom_converters=None):
                 if inspect.isfunction(getattr(cls, key)):
                     continue
                 if not rConfig.rSILENT:
-                    rPrint(f"Using default value for {cls.__name__}.{key}: {getattr(cls, key)}")
+                    Logger.debug(f"Using default value for {cls.__name__}.{key}: {getattr(cls, key)}")
 
     except FileNotFoundError:
-        rPrint(f"Configuration file '{config_path}' not found. Using default values for {cls.__name__}.")
+        Logger.warning(f"Configuration file '{config_path}' not found. Using default values for {cls.__name__}.")
     
     except yaml.YAMLError as e:
         raise ValueError(f"[rConfig] Error parsing YAML file: {e}")
