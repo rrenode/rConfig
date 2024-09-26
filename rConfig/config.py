@@ -107,7 +107,8 @@ def config(cls, custom_converters=None):
                 if inspect.isfunction(getattr(cls, key)):
                     continue
                 if not rConfig.rSILENT:
-                    Logger.debug(f"Using default value for {cls.__name__}.{key}: {getattr(cls, key)}")
+                    msg = f"Using default value for {cls.__name__}.{key}: {getattr(cls, key)}"
+                    Logger.debug(msg)
 
     except FileNotFoundError:
         Logger.warning(f"Configuration file '{config_path}' not found. Using default values for {cls.__name__}.")
