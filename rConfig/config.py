@@ -1,4 +1,4 @@
-from typing import Any, Callable
+from typing import Any, Callable, List
 from enum import Enum
 from dotenv import load_dotenv
 from os import getenv
@@ -17,6 +17,30 @@ class ConverterNotFoundError(Exception):
     def __init__(self, field_type):
         self.field_type = field_type
         super().__init__(f"[rConfig] No converter found for field type: {field_type}")
+
+#TODO: Move converters to their own file
+# Helper function for converting lists of items to the correct type
+def list_converter(item_type) -> Callable[[Any], list]:
+    """
+    Converts a comma-separated string into a list of the appropriate item type.
+    """
+    # Get the appropriate item converter based on the item type
+    item_converter = get_field_type_converters().get(item_type)
+    if not item_converter:
+        raise ConverterNotFoundError(item_type)
+
+    def convert(value):
+        if isinstance(value, str):
+            # If value is a string, split by commas and convert each item
+            return [item_converter(v.strip()) for v in value.split(',')]
+        elif isinstance(value, list):
+            # If value is already a list, apply the converter to each item in the list
+            return [item_converter(v) for v in value]
+        else:
+            # If value is neither a string nor a list, raise an error or handle as needed
+            raise ValueError(f"Expected string or list, but got {type(value)}")
+
+    return convert
 
 # Move FIELD_TYPE_CONVERTERS to a separate function to allow extension
 def get_field_type_converters(custom_converters=None):
@@ -47,13 +71,19 @@ def get_field_type_converters(custom_converters=None):
     return converters
 
 def dev_config(cls, custom_converters=None):
-    ignore_list = ['rSILENT','rDEBUG','rVERBOSE','rCONFIG_PATH','rSECRETS_PATH']
+    ignore_list = ['rSILENT', 'rDEBUG', 'rVERBOSE', 'rCONFIG_PATH', 'rSECRETS_PATH']
     converters = get_field_type_converters(custom_converters)
+
     for key, field_type in cls.__annotations__.items():
         if str(key).startswith("__"):
             continue
         env_value = getenv(key)
-        if field_type not in converters:
+        
+        # Handle List types
+        if hasattr(field_type, '__origin__') and field_type.__origin__ == List:
+            item_type = field_type.__args__[0]  # Get the item type
+            list_converter_func = converters.get(List)
+            if not list_converter_func:
                 raise ConverterNotFoundError(field_type)
         if env_value is None:
             if key in ignore_list:
@@ -62,6 +92,7 @@ def dev_config(cls, custom_converters=None):
         else:
             value = converters[field_type](env_value)
             setattr(cls, key, value)
+
     return cls
 
 @dev_config
@@ -94,7 +125,14 @@ def config(cls, custom_converters=None):
                 if str(key).startswith("__"):
                     continue
                 value = class_config.get(key, getattr(cls, key))
-                if isinstance(field_type, rEnum):
+
+                # Handle List types (List[str], List[int], etc.)
+                if hasattr(field_type, '__origin__') and (field_type.__origin__ == list or field_type.__origin__ == List):
+                    item_type = field_type.__args__[0]  # Get the type of the list's item (e.g., str for List[str])
+                    
+                    # Directly use the list_converter, passing the item_type
+                    value = list_converter(item_type)(value)
+                elif isinstance(field_type, rEnum):
                     value = converters[rEnum](field_type)(value)
                 elif isinstance(field_type, rConstant):
                     value = converters[rConstant](field_type)(value)
@@ -102,6 +140,7 @@ def config(cls, custom_converters=None):
                     raise ConverterNotFoundError(field_type)
                 else:
                     value = converters[field_type](value)
+
                 setattr(cls, key, value)
             elif not str(key).startswith("__"):
                 if inspect.isfunction(getattr(cls, key)):
